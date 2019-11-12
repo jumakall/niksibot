@@ -1,0 +1,5 @@
+.vscode/*
+audio/*
+audio-excluded/*
+launch.sh
+__debug_bin
