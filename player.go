@@ -59,7 +59,7 @@ func (g *Guild) Player() {
 
 		// enqueue random sound if necessary when state is RNG4EVER
 		if g.State == RNG4EVER && len(g.Queue) <= 0 {
-			enqueuePlay(play.User, play.Guild.Guild, play.Sound.Collection, nil)
+			enqueuePlay(nil, play.Guild, play.Sound.Collection, nil)
 		}
 	}
 

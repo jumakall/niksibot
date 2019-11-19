@@ -125,7 +125,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				}
 			}
 
-			go enqueuePlay(m.Author, guild, coll, sound)
+			go enqueuePlay(m.Author, guildData, coll, sound)
 			return
 		}
 	}

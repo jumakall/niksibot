@@ -202,20 +202,33 @@ func randomRange(min, max int) int {
 }
 
 // Prepares a play
-func createPlay(user *discordgo.User, guild *discordgo.Guild, coll *SoundCollection, sound *Sound) *Play {
-	// Grab the voice channel the user is in
-	channel := getCurrentVoiceChannel(user, guild)
+func createPlay(user *discordgo.User, guild *Guild, coll *SoundCollection, sound *Sound) *Play {
+
+	var channel *discordgo.Channel
+	if user != nil {
+		// Grab the voice channel the user is in
+		channel = getCurrentVoiceChannel(user, guild.Guild)
+	} else {
+		// Or keep the current channel
+		var err error
+		channel, err = discord.State.Channel(guild.VoiceConnection.ChannelID)
+
+		if err != nil {
+			return nil
+		}
+	}
+
 	if channel == nil {
 		log.WithFields(log.Fields{
 			"user":  user.ID,
-			"guild": guild.ID,
+			"guild": guild.Guild.ID,
 		}).Warning("Failed to find channel to play sound in")
 		return nil
 	}
 
 	// Create the play
 	play := &Play{
-		Guild:   guilds[guild.ID],
+		Guild:   guild,
 		Channel: channel,
 		User:    user,
 		Sound:   sound,
@@ -233,24 +246,22 @@ func createPlay(user *discordgo.User, guild *discordgo.Guild, coll *SoundCollect
 }
 
 // Prepares and enqueues a play into the ratelimit/buffer guild queue
-func enqueuePlay(user *discordgo.User, guild *discordgo.Guild, coll *SoundCollection, sound *Sound) {
+func enqueuePlay(user *discordgo.User, guild *Guild, coll *SoundCollection, sound *Sound) {
 	play := createPlay(user, guild, coll, sound)
 	if play == nil {
 		return
 	}
 
-	guildData := guilds[guild.ID]
+	if guild.Queue == nil {
+		guild.Queue = make(chan *Play, MAX_QUEUE_SIZE)
 
-	if guildData.Queue == nil {
-		guildData.Queue = make(chan *Play, MAX_QUEUE_SIZE)
-
-		if len(guildData.Queue) < MAX_QUEUE_SIZE {
-			guildData.Queue <- play
+		if len(guild.Queue) < MAX_QUEUE_SIZE {
+			guild.Queue <- play
 		}
 
-		guildData.Player()
-	} else if len(guildData.Queue) < MAX_QUEUE_SIZE {
-		guildData.Queue <- play
+		guild.Player()
+	} else if len(guild.Queue) < MAX_QUEUE_SIZE {
+		guild.Queue <- play
 	}
 }
 
